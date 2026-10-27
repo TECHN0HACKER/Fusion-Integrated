@@ -5,8 +5,4 @@ class LeaveApplicationSerializer(serializers.ModelSerializer):
     class Meta:
         model = LeaveApplication
         fields = '__all__'
-
-class LeaveTypeSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = LeaveType
-        fields = '__all__'
+        read_only_fields = ('user_id',)
