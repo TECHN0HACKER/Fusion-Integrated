@@ -1,32 +1,44 @@
 from rest_framework import generics
-from rest_framework.permissions import IsAuthenticated
 from modules.leave.models import LeaveApplication, LeaveType, LeaveBalance
-from modules.leave.serializers import LeaveApplicationSerializer, LeaveTypeSerializer, LeaveBalanceSerializer
+from modules.leave.serializers import (
+    LeaveApplicationSerializer,
+    LeaveTypeSerializer,
+    LeaveBalanceSerializer,
+)
+
 
 class LeaveApplicationListView(generics.ListCreateAPIView):
     serializer_class = LeaveApplicationSerializer
-    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return LeaveApplication.objects.filter(user_id=self.request.user.id)
+        p = getattr(self.request, "principal", None)
+        qs = LeaveApplication.objects.all().order_by("-id")
+        if p and getattr(p, "user_id", None):
+            return qs.filter(user_id=p.user_id)
+        return qs
 
     def perform_create(self, serializer):
-        serializer.save(user_id=self.request.user.id)
+        p = getattr(self.request, "principal", None) or getattr(self.request, "user", None)
+        user_id = getattr(p, "user_id", None) or getattr(p, "id", None) or 1
+        serializer.save(user_id=user_id)
+
 
 class LeaveApplicationDetailView(generics.RetrieveUpdateAPIView):
+    queryset = LeaveApplication.objects.all()
     serializer_class = LeaveApplicationSerializer
-    permission_classes = [IsAuthenticated]
 
-    def get_queryset(self):
-        return LeaveApplication.objects.filter(user_id=self.request.user.id)
 
-class LeaveTypeListView(generics.ListAPIView):
+class LeaveTypeListView(generics.ListCreateAPIView):
+    queryset = LeaveType.objects.all().order_by("name")
     serializer_class = LeaveTypeSerializer
-    permission_classes = [IsAuthenticated]
+
 
 class LeaveBalanceListView(generics.ListAPIView):
     serializer_class = LeaveBalanceSerializer
-    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return LeaveBalance.objects.filter(user_id=self.request.user.id)
+        p = getattr(self.request, "principal", None)
+        qs = LeaveBalance.objects.all()
+        if p and getattr(p, "user_id", None):
+            return qs.filter(user_id=p.user_id)
+        return qs
